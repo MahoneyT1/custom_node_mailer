@@ -74,7 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
     res.json({ success: true, message: "Email sent!" });
   } catch (err: any) {
-    console.error(err);
+    console.error(err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 }
