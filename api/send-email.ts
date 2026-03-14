@@ -33,8 +33,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // 3. Put the visitor's email here so you can reply to them!
       replyTo: email, 
       
-      subject: `[Contact Form] ${subject}`,
-      text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`,
+      subject: `${subject}`,
+      text: `${name}\n${email}\n${message}`,
     });
 
     return res.status(200).json({ success: true, message: "Email sent!" });
