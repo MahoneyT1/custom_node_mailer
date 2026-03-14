@@ -33,7 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const allowedOrigins =  [
-    'http://localhost',
+    "http://localhost:5173",
     "https://leaves-admin.com",
     "https://globallogistick.com"
   ]
