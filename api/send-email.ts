@@ -2,95 +2,44 @@ import { VercelRequest, VercelResponse } from "@vercel/node";
 import nodemailer from "nodemailer";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const allowedOrigins = [
-    "http://localhost:5173",
-    "https://leaves-admin.com",
-    "https://globallogistick.com"
-  ];
-
-  const origin = req.headers.origin ?? "";
-
-  // 1. ALWAYS set CORS headers immediately
-  res.setHeader("Access-Control-Allow-Origin", origin || "*");
+  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  // 2. Validate Origin
-  if (!allowedOrigins.includes(origin)) {
-    return res.status(403).json({ success: false, error: "Unauthorized origin" });
-  }
+  const { subject, message, name, email } = req.body; // email is the visitor's email
 
-  if (req.method !== "POST") {
-    return res.status(405).json({ success: false, error: "Method not allowed" });
-  }
-
-  // 3. Dynamic Configuration based on Origin
-  let smtpConfig;
-  let supportEmail;
-
-  if (origin === "https://leaves-admin.com") {
-    supportEmail = "support@leaves-admin.com";
-    smtpConfig = {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    };
-  } else {
-    // Default for localhost and globallogistick
-    supportEmail = "support@globallogistick.com";
-    smtpConfig = {
-      user: process.env.EMAIL_GLOBALLOGISTICK_SMTP_USER,
-      pass: process.env.EMAIL_GLOBALLOGISTICK_PASSWORD,
-    };
-  }
-
-  // 4. Create Transporter INSIDE the handler to ensure fresh Env Vars
   const transporter = nodemailer.createTransport({
     host: "smtp.hostinger.com",
-    port: 587,
-    secure: false, // Use STARTTLS for 587
+    port: 465,
+    secure: true,
     auth: {
-      user: smtpConfig.user,
-      pass: smtpConfig.pass,
+      user: process.env.EMAIL_GLOBALLOGISTICK_SMTP_USER,
+      pass: process.env.EMAIL_GLOBALLOGISTICK_PASSWORD,
     },
-    tls: {
-      rejectUnauthorized: false, // Essential for Hostinger + Vercel
-    },
+    tls: { rejectUnauthorized: false }
   });
 
-  const { subject, message } = req.body;
-
-  if (!subject || !message) {
-    return res.status(400).json({ success: false, error: "Missing fields" });
-  }
-
   try {
-    // 5. Verify and Send
-    await transporter.verify();
-
-    const info = await transporter.sendMail({
-      from: `"${subject}" <${smtpConfig.user}>`, // Format as "Subject <email>"
-      to: supportEmail,
-      subject: subject,
-      text: message,
+    await transporter.sendMail({
+      // 1. MUST be your authenticated Hostinger email
+      from: `"Website Contact: ${name}" <${process.env.EMAIL_GLOBALLOGISTICK_SMTP_USER}>`, 
+      
+      // 2. Your Inbox
+      to: "support@globallogistick.com", 
+      
+      // 3. Put the visitor's email here so you can reply to them!
+      replyTo: email, 
+      
+      subject: `[Contact Form] ${subject}`,
+      text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`,
     });
 
-    return res.status(200).json({
-      success: true,
-      message: "Email sent successfully",
-      messageId: info.messageId
-    });
-
+    return res.status(200).json({ success: true, message: "Email sent!" });
   } catch (err: any) {
     console.error("SMTP ERROR:", err.message);
-    // Return 500 but still with valid JSON so the frontend doesn't trigger a "CORS" error
-    return res.status(500).json({ 
-      success: false, 
-      error: err.message,
-      code: err.code 
-    });
+    return res.status(500).json({ success: false, error: err.message });
   }
 }
