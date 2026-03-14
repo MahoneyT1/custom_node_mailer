@@ -1,6 +1,4 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
-import { error } from "console";
-import { request } from "http";
 import nodemailer from "nodemailer";
 
 
@@ -20,8 +18,8 @@ const transporters: Record<string, any> = {
     port: 465,
     secure: true,
     auth: {
-      user: process.env.EMAIL_GLOBALLOGISTICK_USER,
-      pass: process.env.EMAIL_GLOBALLOGISTICK_PASS
+      user: process.env.EMAIL_GLOBALLOGISTICK_SMTP_USER,
+      pass: process.env.EMAIL_GLOBALLOGISTICK_PASSWORD
     }
   })
 };
@@ -34,7 +32,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     "https://globallogistick.com": "support@globallogistick.com",
   }
 
-  const allowedOrigins = Object.keys(supportEmails);
+  const allowedOrigins =  [
+    'http://localhost',
+    "https://leaves-admin.com",
+    "https://globallogistick.com"
+  ]
 
   const origin = req.headers.origin ?? ""
   if (!allowedOrigins.includes(origin)) {
