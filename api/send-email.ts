@@ -4,31 +4,41 @@ import nodemailer from "nodemailer";
 const transporters: Record<string, any> = {
   "http://localhost:5173": nodemailer.createTransport({
     host: "smtp.hostinger.com",
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false,
     auth: {
       user: process.env.EMAIL_GLOBALLOGISTICK_SMTP_USER,
       pass: process.env.EMAIL_GLOBALLOGISTICK_PASSWORD
+    },
+    tls: {
+      rejectUnauthorized: false // Add this line to both transporters
     }
   }),
 
   "https://leaves-admin.com": nodemailer.createTransport({
     host: "smtp.hostinger.com",
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS
+    },
+    tls: {
+      rejectUnauthorized: false // Add this line to both transporters
     }
   }),
 
   "https://globallogistick.com": nodemailer.createTransport({
     host: "smtp.hostinger.com",
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false,
     auth: {
       user: process.env.EMAIL_GLOBALLOGISTICK_SMTP_USER,
       pass: process.env.EMAIL_GLOBALLOGISTICK_PASSWORD
+    },
+    tls: {
+      rejectUnauthorized: false // Add this line to both transporters
+      
     }
   })
 };
@@ -98,7 +108,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    await transporter.sendMail({
+    const res = await transporter.sendMail({
       from: transporter.options.auth.user,
       to: supportEmail,
       subject,
@@ -110,12 +120,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       message: "Email sent successfully"
     });
 
-  } catch (err) {
-    console.error("Email error:", err);
-
-    return res.status(500).json({
-      success: false,
-      error: "Email sending failed"
-    });
+  } catch (err: any) {
+    console.error("SMTP ERROR:", err.code, err.command, err.response);
+  return res.status(500).json({ success: false, error: err.message });
   }
 }
