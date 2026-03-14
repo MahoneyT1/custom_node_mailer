@@ -2,6 +2,16 @@ import { VercelRequest, VercelResponse } from "@vercel/node";
 import nodemailer from "nodemailer";
 
 const transporters: Record<string, any> = {
+  "http://localhost:5173": nodemailer.createTransport({
+    host: "smtp.hostinger.com",
+    port: 465,
+    secure: true,
+    auth: {
+      user: process.env.EMAIL_GLOBALLOGISTICK_SMTP_USER,
+      pass: process.env.EMAIL_GLOBALLOGISTICK_PASSWORD
+    }
+  }),
+
   "https://leaves-admin.com": nodemailer.createTransport({
     host: "smtp.hostinger.com",
     port: 465,
