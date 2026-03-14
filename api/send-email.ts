@@ -1,4 +1,5 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
+import { response } from "express";
 import nodemailer from "nodemailer";
 
 
@@ -66,15 +67,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    await transporter.sendMail({
+      await transporter.sendMail({
       from: transporter.options.auth.user,
       to: supportEmail,
       subject,
       text: message
-    });
-    res.json({ success: true, message: "Email sent!" });
-  } catch (err: any) {
-    console.error(err.message);
-    res.status(500).json({ success: false, error: err.message });
+    })
+  } catch (err) {
+    console.error("Fetch failed:", err);
+    throw new Error(String(err))
   }
-}
+};
+
