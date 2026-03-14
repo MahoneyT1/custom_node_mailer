@@ -53,11 +53,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (!allowedOrigins.includes(origin)) {
-    return res.status(403).json({
-      success: false,
-      error: "Unauthorized origin"
-    });
-  }
+  console.log("Blocked origin:", origin);
+  return res.status(403).json({
+    success: false,
+    error: "Unauthorized origin"
+  });
+}
 
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -83,6 +84,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       error: "No transporter configured for this origin"
     });
   }
+
+  
 
   const { subject, message } = req.body;
 
