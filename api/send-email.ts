@@ -1,7 +1,5 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
-import { response } from "express";
 import nodemailer from "nodemailer";
-
 
 const transporters: Record<string, any> = {
   "https://leaves-admin.com": nodemailer.createTransport({
@@ -25,29 +23,17 @@ const transporters: Record<string, any> = {
   })
 };
 
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
 
-  const supportEmails: Record< string, string > = {
-    "https://leaves-admin.com": "support@leaves-admin.com",
-    "https://globallogistick.com": "support@globallogistick.com",
-  }
-
-  const allowedOrigins =  [
+  const allowedOrigins = [
     "http://localhost:5173",
     "https://leaves-admin.com",
     "https://globallogistick.com"
-  ]
+  ];
 
-  const origin = req.headers.origin ?? ""
-  if (!allowedOrigins.includes(origin)) {
-    res.status(403).json({success: false, error: "Unauthorized origin"})
-  }
+  const origin = req.headers.origin ?? "";
 
-  // extract the origin based on request and transporter
-  const transporter = transporters[origin]
-  const supportEmail = supportEmails[origin];
-
+  // CORS headers FIRST
   res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -56,26 +42,63 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
+  if (!allowedOrigins.includes(origin)) {
+    return res.status(403).json({
+      success: false,
+      error: "Unauthorized origin"
+    });
+  }
+
   if (req.method !== "POST") {
-    return res.status(405).json({ success: false, error: "Method not allowed" });
+    return res.status(405).json({
+      success: false,
+      error: "Method not allowed"
+    });
+  }
+
+  const supportEmails: Record<string, string> = {
+    "https://leaves-admin.com": "support@leaves-admin.com",
+    "https://globallogistick.com": "support@globallogistick.com"
+  };
+
+  const transporter = transporters[origin];
+  const supportEmail = supportEmails[origin];
+
+  if (!transporter || !supportEmail) {
+    return res.status(400).json({
+      success: false,
+      error: "No transporter configured for this origin"
+    });
   }
 
   const { subject, message } = req.body;
 
-  if ( !subject || !message) {
-    return res.status(400).json({ success: false, error: "Missing fields" });
+  if (!subject || !message) {
+    return res.status(400).json({
+      success: false,
+      error: "Missing fields"
+    });
   }
 
   try {
-      await transporter.sendMail({
+    await transporter.sendMail({
       from: transporter.options.auth.user,
       to: supportEmail,
       subject,
       text: message
-    })
-  } catch (err) {
-    console.error("Fetch failed:", err);
-    throw new Error(String(err))
-  }
-};
+    });
 
+    return res.status(200).json({
+      success: true,
+      message: "Email sent successfully"
+    });
+
+  } catch (err) {
+    console.error("Email error:", err);
+
+    return res.status(500).json({
+      success: false,
+      error: "Email sending failed"
+    });
+  }
+}
