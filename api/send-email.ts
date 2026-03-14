@@ -107,13 +107,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
+  await transporter.verify()
+
   try {
-    const res = await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: transporter.options.auth.user,
       to: supportEmail,
       subject,
       text: message
     });
+
+    console.log("Message sent: %s", info.messageId);
+
 
     return res.status(200).json({
       success: true,
