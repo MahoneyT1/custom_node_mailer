@@ -68,6 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const supportEmails: Record<string, string> = {
+    "http://localhost:5173": "support@globallogistick.com",
     "https://leaves-admin.com": "support@leaves-admin.com",
     "https://globallogistick.com": "support@globallogistick.com"
   };
