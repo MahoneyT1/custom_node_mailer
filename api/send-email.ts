@@ -1,28 +1,51 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
+import { error } from "console";
+import { request } from "http";
 import nodemailer from "nodemailer";
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.hostinger.com",
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
+
+const transporters: Record<string, any> = {
+  "https://leaves-admin.com": nodemailer.createTransport({
+    host: "smtp.hostinger.com",
+    port: 465,
+    secure: true,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    }
+  }),
+
+  "https://globallogistick.com": nodemailer.createTransport({
+    host: "smtp.hostinger.com",
+    port: 465,
+    secure: true,
+    auth: {
+      user: process.env.EMAIL_GLOBALLOGISTICK_USER,
+      pass: process.env.EMAIL_GLOBALLOGISTICK_PASS
+    }
+  })
+};
+
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    const allowedOrigins = [
-    "http://localhost:5173",
-    "http://leaves-admin.com",
-    "https://leaves-admin.com"
-  ];
 
-const origin = req.headers.origin ?? "";
-
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
+  const supportEmails: Record< string, string > = {
+    "https://leaves-admin.com": "support@leaves-admin.com",
+    "https://globallogistick.com": "support@globallogistick.com",
   }
+
+  const allowedOrigins = Object.keys(supportEmails);
+
+  const origin = req.headers.origin ?? ""
+  if (!allowedOrigins.includes(origin)) {
+    res.status(403).json({success: false, error: "Unauthorized origin"})
+  }
+
+  // extract the origin based on request and transporter
+  const transporter = transporters[origin]
+  const supportEmail = supportEmails[origin];
+
+  res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
@@ -34,16 +57,16 @@ const origin = req.headers.origin ?? "";
     return res.status(405).json({ success: false, error: "Method not allowed" });
   }
 
-  const { to, subject, message } = req.body;
+  const { subject, message } = req.body;
 
-  if (!to || !subject || !message) {
+  if ( !subject || !message) {
     return res.status(400).json({ success: false, error: "Missing fields" });
   }
 
   try {
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to,
+      from: transporter.options.auth.user,
+      to: supportEmail,
       subject,
       text: message
     });
